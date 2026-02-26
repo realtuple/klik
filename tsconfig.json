@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+        "types": [
+            "vue",
+            "ziggy-js"
+        ],
+        "baseUrl": ".",
+        "paths": {
+            "@/*": [
+                "resources/js/*"
+            ]
+        }
+    }
+}
