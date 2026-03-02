@@ -6,5 +6,5 @@ parameters:
         - app
         - database
         - routes
-        - test
+        - tests
     level: 8
