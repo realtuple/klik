@@ -1,0 +1,21 @@
+name: Frontend CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  # If repo is bigger please split
+  checks:
+    runs-on: ubuntu-latests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: action/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint # Checks for linting
+      - run: npm run format:check # Checks for formatting
+      - run: npm run build # Checks for building
