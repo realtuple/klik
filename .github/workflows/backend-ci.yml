@@ -7,7 +7,7 @@ on:
 
 jobs:
     checks:
-        runs-on: ubuntu-latests
+        runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
             - uses: ashivammathur/setup-php@v2
