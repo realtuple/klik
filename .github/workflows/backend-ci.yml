@@ -10,9 +10,9 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
-            - uses: ashivammathur/setup-php@v2
+            - uses: shivammathur/setup-php@v2
               with:
-                  node-version: 8.5
+                  php-version: 8.5
                   extensions: mbstring, intl
                   coverage: none
             - run: composer install --prefer-dist --no-progress
