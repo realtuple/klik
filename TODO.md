@@ -31,7 +31,7 @@
 ## 3. Middle stage development
 
 - [ ] Importing content from Instagram
-- [ ] Relations
+- [ ] Stories
 - [ ] Statistic system (for admin and content creator dashboard)
 - [ ] GIFs in comments system
 

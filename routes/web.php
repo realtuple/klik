@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -33,7 +34,6 @@ Route::get('/auth/reset-password/{token}', [AuthController::class, 'resetPasswor
 Route::post('/auth/reset-password', [AuthController::class, 'resetPassword'])
     ->middleware('guest')->name('auth.resetPassword');
 
-
 /*
     Homepage
 */
@@ -41,3 +41,9 @@ Route::post('/auth/reset-password', [AuthController::class, 'resetPassword'])
 Route::get('/', function () {
     return Inertia::render('Homepage', []);
 })->middleware(['auth', 'verified'])->name('homepage');
+
+/*
+    Profile system
+*/
+Route::get('/{profile:username}', [ProfileController::class, 'show'])
+    ->name('profile.show');

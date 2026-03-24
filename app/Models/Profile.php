@@ -18,10 +18,21 @@ class Profile extends Model
     ];
 
     /**
-     * Gets the user that profile belongs to
-     * @return BelongsTo<User, Profile>
+     * The attributes that should be hidden for serialization.
+     *
+     * @var list<string>
      */
-    public function user(): BelongsTo {
+    protected $hidden = [
+        'user_id',
+    ];
+
+    /**
+     * Gets the user that profile belongs to
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
+    {
         return $this->belongsTo(User::class);
     }
 }

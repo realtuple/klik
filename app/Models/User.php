@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable implements MustVerifyEmail, CanResetPassword
+class User extends Authenticatable implements CanResetPassword, MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
@@ -50,9 +50,11 @@ class User extends Authenticatable implements MustVerifyEmail, CanResetPassword
 
     /**
      * Gets a profile of a user
-     * @return HasOne<Profile, User>
+     *
+     * @return HasOne<Profile, $this>
      */
-    public function profile(): HasOne {
+    public function profile(): HasOne
+    {
         return $this->hasOne(Profile::class);
     }
 }

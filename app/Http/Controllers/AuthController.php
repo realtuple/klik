@@ -2,17 +2,22 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Profile;
+use App\Data\CreateUserData;
+use App\Data\ResetPasswordData;
+use App\Http\Requests\AuthenticateRequest;
+use App\Http\Requests\CreateAccountRequest;
+use App\Http\Requests\CreateUserRequest;
+use App\Http\Requests\ForgotPasswordRequest;
+use App\Http\Requests\ResetPasswordRequest;
 use App\Models\User;
-use Illuminate\Auth\Events\Registered;
+use App\Services\AuthService;
+use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
-use Illuminate\Auth\Events\PasswordReset;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 /**
@@ -20,6 +25,9 @@ use Inertia\Inertia;
  */
 class AuthController extends Controller
 {
+    public function __construct(private AuthService $authService)
+    {
+    }
 
     /*
         Log in
@@ -27,6 +35,7 @@ class AuthController extends Controller
 
     /**
      * Shows login page
+     *
      * @return \Inertia\Response
      */
     public function loginPage()
@@ -36,20 +45,14 @@ class AuthController extends Controller
 
     /**
      * Authenticates user
-     * @param Request $request
+     *
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function authenticate(Request $request)
+    public function authenticate(AuthenticateRequest $request)
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required', 'min:8'],
-        ]);
-
-        if (Auth::attempt([
-            'email' => $credentials['email'],
-            'password' => $credentials['password']
-        ], true)) {
+        if (
+            Auth::attempt($request->validated(), true)
+        ) {
             $request->session()->regenerate();
 
             return redirect()->intended();
@@ -66,6 +69,7 @@ class AuthController extends Controller
 
     /**
      * Shows login page
+     *
      * @return \Inertia\Response
      */
     public function registerPage()
@@ -75,39 +79,14 @@ class AuthController extends Controller
 
     /**
      * Creates account
-     * @param Request $request
+     *
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function createAccount(Request $request)
+    public function createAccount(CreateUserRequest $request)
     {
-        $data = $request->validate([
-            'display_name' => ['required'],
-            'username' => ['required', 'min:3', 'max:20'],
-            'email' => ['required', 'email'],
-            'password' => ['required', 'confirmed', 'min:8'],
-            'date' => ['required', Rule::date()->beforeOrEqual(today()->subYears(13))]
-        ]);
-
-        if (Profile::where('username', $data['username'])->exists()) {
-            return back()->withErrors(['username' => __('auth.this_username_is_taken')]);
-        }
-
-        if (User::where('email', $data['email'])->exists()) {
-            return back()->withErrors(['email' => __('auth.this_email_is_taken'),]);
-        }
-
-        $user = User::create([
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-        ]);
-
-        $user->profile()->create([
-            'username' => $data['username'],
-            'display_name' => $data['display_name'],
-        ]);
-
-
-        event(new Registered($user));
+        $plainData = $request->validated();
+        $userData = new CreateUserData($plainData['display_name'], $plainData['username'], $plainData['email'], $plainData['password']);
+        $this->authService->create($userData);
 
         return redirect()->intended();
     }
@@ -118,7 +97,7 @@ class AuthController extends Controller
 
     /**
      * Logouts and invalidates session
-     * @param Request $request
+     *
      * @return \Illuminate\Http\RedirectResponse
      */
     public function logout(Request $request)
@@ -137,6 +116,7 @@ class AuthController extends Controller
 
     /**
      * Shows page informing user about email verifications
+     *
      * @return \Inertia\Response
      */
     public function notifyAboutEmailVerification()
@@ -146,23 +126,24 @@ class AuthController extends Controller
 
     /**
      * Handles email verification
-     * @param EmailVerificationRequest $request
+     *
      * @return \Illuminate\Http\RedirectResponse
      */
     public function verify(EmailVerificationRequest $request)
     {
         $request->fulfill();
+
         return redirect('/');
     }
 
     /**
      * Resend verification email
-     * @param Request $request
+     *
      * @return \Illuminate\Http\RedirectResponse
      */
     public function resendVerificationEmail(Request $request)
     {
-        $request->user()->sendEmailVerificationNotification();
+        $request->user()?->sendEmailVerificationNotification();
 
         Inertia::flash('message', __('auth.verification_link_send'));
 
@@ -175,6 +156,7 @@ class AuthController extends Controller
 
     /**
      * Shows form for sending email with link to reset password form
+     *
      * @return \Inertia\Response reset password form
      */
     public function forgotPasswordForm()
@@ -184,27 +166,28 @@ class AuthController extends Controller
 
     /**
      * Request that handles sending reset link to user
-     * @param Request $request
+     *
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function forgotPassword(Request $request)
+    public function forgotPassword(ForgotPasswordRequest $request)
     {
-        $request->validate(['email' => ['required', 'email']]);
-
         $status = Password::sendResetLink(
             $request->only('email')
         );
 
-        if ($status == Password::ResetLinkSent) {
+        if ($status === Password::ResetLinkSent) {
             Inertia::flash(['email' => __($status)]);
+
             return back();
         }
+
         return back()->withErrors(['email' => __($status)]);
     }
 
     /**
      * Shows form for resetting password
-     * @param string $token Reset form token
+     *
+     * @param  string  $token  Reset form token
      * @return \Inertia\Response
      */
     public function resetPasswordForm(string $token)
@@ -214,26 +197,12 @@ class AuthController extends Controller
 
     /**
      * Request for resetting password (finally it does this in this chain of requests)
-     * @param Request $request
+     *
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function resetPassword(Request $request)
+    public function resetPassword(ResetPasswordRequest $request)
     {
-        $request->validate([
-            'token' => ['required'],
-            'email' => ['required', 'email'],
-            'password' => ['required', 'confirmed', 'min:8'],
-        ]);
-
-        $status = Password::reset($request->only('email', 'password', 'password_confirmation', 'token'), function (User $user, string $password) {
-            $user->forceFill([
-                'password' => Hash::make($password),
-            ])->setRememberToken(Str::random(60));
-
-            $user->save();
-
-            event(new PasswordReset($user));
-        });
+        $status = $this->authService->resetPassword(ResetPasswordData::fromArray($request->validated()->only(['email', 'token', 'password'])));
 
         if ($status === Password::PasswordReset) {
             return redirect()->route('auth.login');

@@ -88,9 +88,8 @@ return [
             'retry_after' => 60,
         ],
 
-
         'mailgun' => [
-            'transport' => 'mailgun'
+            'transport' => 'mailgun',
         ],
 
         'roundrobin' => [
